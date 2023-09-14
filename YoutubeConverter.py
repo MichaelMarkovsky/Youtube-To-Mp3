@@ -3,11 +3,32 @@ from selenium.webdriver.common.by import By#imports a library that alows us to m
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
+#imports for creating the download folder
+import os
+import sys
 
+
+def create_download_folder_if_not_exists():
+    script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
+
+
+    # checking if the directory downloads 
+    # exist or not.
+    if not os.path.exists(f"{script_directory}\downloads"):
+        # if the downloads directory is not present 
+        # then create it.
+        os.makedirs(f"{script_directory}\downloads")
 
 
 
 def Youtube_To_MP3_Download(youtube_link,download_location,file_format):
+    # checking if the directory downloads 
+    # exist or not.
+    if not os.path.exists("/downloads"):
+        # if the demo_folder directory is not present 
+        # then create it.
+        os.makedirs("/downloads")
+
     # these 2 lines make it so that the browser wont close automaticly
     options = webdriver.ChromeOptions()
     options.add_experimental_option("detach", True)
@@ -53,6 +74,8 @@ def Youtube_To_MP3_Download(youtube_link,download_location,file_format):
         my_element = driver.find_element(By.ID,"btn192")
         my_element.click()#clicks on the Download button
 
+        
+
     if (file_format=="mp4"):
         driver.get("https://en1.y2mate.is/w0p8g/youtube-to-mp4.html")#gets into this url(opens this site)
 
@@ -87,10 +110,15 @@ def Youtube_To_MP3_Download(youtube_link,download_location,file_format):
 
 
 
+create_download_folder_if_not_exists()
+
+script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads"
+File_location = script_directory          
+#Example:   "C:\\Users\\misha\\Desktop\\" 
 
 
-Youtube_link="https://www.youtube.com/watch?v=b2iA0hNT-B0&t=21s"
-File_location="C:\\Users\\misha\\Desktop\\"
+Youtube_link="https://www.youtube.com/watch?v=8wfTugYicqc"
 File_format="mp3"
+
 Youtube_To_MP3_Download(Youtube_link,File_location,File_format)#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )
 
