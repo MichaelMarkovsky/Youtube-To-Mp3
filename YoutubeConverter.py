@@ -19,15 +19,13 @@ def create_download_folder_if_not_exists():
         # then create it.
         os.makedirs(f"{script_directory}\downloads")
 
+        #create subfolders
+        os.makedirs(f"{script_directory}\downloads\mp3")
+        os.makedirs(f"{script_directory}\downloads\mp4")
+
 
 
 def Youtube_To_MP3_Download(youtube_link,download_location,file_format):
-    # checking if the directory downloads 
-    # exist or not.
-    if not os.path.exists("/downloads"):
-        # if the demo_folder directory is not present 
-        # then create it.
-        os.makedirs("/downloads")
 
     # these 2 lines make it so that the browser wont close automaticly
     options = webdriver.ChromeOptions()
@@ -47,15 +45,25 @@ def Youtube_To_MP3_Download(youtube_link,download_location,file_format):
 
         #timeout:
         driver.implicitly_wait(10)#waits untill finds the elemnt, an x amount of time in order to prevent errors because of slow processes like loading the site,server..its a timeout for all elements
-
+    
 
         my_element = driver.find_element(By.ID,"txtUrl")#selects an element and stores it as a web element
         my_element.click()
         my_element.send_keys(youtube_link)#"types"
+
+        
+
+        WebDriverWait(driver, 10).until(    
+            EC.element_to_be_clickable(
+                (By.ID,"btnSubmit")
+            )
+        )
         my_element = driver.find_element(By.ID,"btnSubmit")
         my_element.click()#Clicks on the Start button
 
+
         my_element = driver.find_element(By.ID,"btn192")
+        print(my_element)
         my_element.click()#Clicks on the Convert button
 
 
@@ -110,15 +118,26 @@ def Youtube_To_MP3_Download(youtube_link,download_location,file_format):
 
 
 
+
+
+
 create_download_folder_if_not_exists()
 
-script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads"
-File_location = script_directory          
-#Example:   "C:\\Users\\misha\\Desktop\\" 
+#================
+File_format="mp3"
+#================
+
+#download the file to the right path due to the format
+if File_format == "mp3":
+    script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads\mp3"
+    File_location = script_directory          
+    #Example:   "C:\\Users\\misha\\Desktop\\" 
+if File_format == "mp4":
+    script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads\mp4"
+    File_location = script_directory         
 
 
 Youtube_link="https://www.youtube.com/watch?v=8wfTugYicqc"
-File_format="mp3"
 
 Youtube_To_MP3_Download(Youtube_link,File_location,File_format)#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )
 
