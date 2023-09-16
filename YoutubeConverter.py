@@ -7,6 +7,8 @@ from selenium.webdriver.support import expected_conditions as EC
 import os
 import sys
 
+import string
+import time
 
 def create_download_folder_if_not_exists():
     script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
@@ -47,9 +49,9 @@ def Youtube_To_MP3_Download(youtube_link,download_location,file_format):
         driver.implicitly_wait(10)#waits untill finds the elemnt, an x amount of time in order to prevent errors because of slow processes like loading the site,server..its a timeout for all elements
     
 
-        my_element = driver.find_element(By.ID,"txtUrl")#selects an element and stores it as a web element
-        my_element.click()
-        my_element.send_keys(youtube_link)#"types"
+        Textbox_element = driver.find_element(By.ID,"txtUrl")#selects an element and stores it as a web element
+        Textbox_element.click()
+        Textbox_element.send_keys(youtube_link)#"types"
 
         
 
@@ -58,17 +60,28 @@ def Youtube_To_MP3_Download(youtube_link,download_location,file_format):
                 (By.ID,"btnSubmit")
             )
         )
-        my_element = driver.find_element(By.ID,"btnSubmit")
-        my_element.click()#Clicks on the Start button
+        Start_button = driver.find_element(By.ID,"btnSubmit")
+        Start_button.click()#Clicks on the Start button
 
 
-        my_element = driver.find_element(By.ID,"btn192")
-        print(my_element)
-        my_element.click()#Clicks on the Convert button
+        Convert_button = driver.find_element(By.ID,"btn192")
+        Convert_button.click()#Clicks on the Convert button
 
 
-        Song_Name = driver.find_element(By.ID,"videoTitle").text.splitlines()[0] #Gets the song TITLE + DURATION as a string, then splits the lines into a list , where the first item is the name and the second is the duration
-        print(Song_Name)#Prints the song name
+        Song_Name_with_pun = driver.find_element(By.ID,"videoTitle").text.splitlines()[0] #Gets the song TITLE + DURATION as a string, then splits the lines into a list , where the first item is the name and the second is the duration
+        Song_Name_without_pun = Song_Name_with_pun        
+                # initializing punctuations string
+        punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
+        
+        # Removing punctuations in string
+        # Using loop + punctuation string
+        for ele in Song_Name_without_pun:
+            if ele in punc:
+                Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
+
+        
+        print(Song_Name_with_pun)
+        print(Song_Name_without_pun)
 
 
         #Waits 10 seconds untill it find the element if the id=btn192 when it will have the text Download and then the program will proceed
@@ -79,8 +92,44 @@ def Youtube_To_MP3_Download(youtube_link,download_location,file_format):
             )
         )
 
-        my_element = driver.find_element(By.ID,"btn192")
-        my_element.click()#clicks on the Download button
+        Download_button = driver.find_element(By.ID,"btn192")
+        Download_button.click()#clicks on the Download button
+
+
+
+        ###########Renames the file to be user friendly + checks if the download has been completed
+        script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
+        # directory/folder path
+        dir_path = (f"{script_directory}\downloads\mp3")
+
+        dir_list = os.listdir(dir_path)
+        print("Files and directories in '", dir_path, "' :")
+
+        # prints all files
+        print(dir_list)
+
+
+        #code to remove whitespace
+        def remove(string):
+            return string.replace(" ", "")
+
+        
+        try:
+            found = False
+            while(found==False):
+                for file in os.listdir(dir_path):
+                    if remove(file).find(remove(Song_Name_without_pun)) > -1:#if file does not exist,then rename it and complete
+                        title = file.title()
+                        if file.endswith("mp3"):
+                            os.rename(os.path.join(dir_path, file),os.path.join(dir_path,f"{Song_Name_without_pun}.mp3"))
+                            found=True
+                    
+                            
+        except:
+            print("file name already exists")
+
+        print('download has been completed')
+        #==============================================================================
 
         
 
@@ -91,18 +140,39 @@ def Youtube_To_MP3_Download(youtube_link,download_location,file_format):
         driver.implicitly_wait(10)#waits untill finds the elemnt, an x amount of time in order to prevent errors because of slow processes like loading the site,server..its a timeout for all elements
 
 
-        my_element = driver.find_element(By.ID,"txtUrl")#selects an element and stores it as a web element
-        my_element.click()
-        my_element.send_keys(youtube_link)#"types"
-        my_element = driver.find_element(By.ID,"btnSubmit")
-        my_element.click()#Clicks on the Start button
-
-        my_element = driver.find_element(By.ID,"btn22")
-        my_element.click()#Clicks on the Convert button
+        Textbox_element = driver.find_element(By.ID,"txtUrl")#selects an element and stores it as a web element
+        Textbox_element.click()
+        Textbox_element.send_keys(youtube_link)#"types"
 
 
-        Song_Name = driver.find_element(By.ID,"videoTitle").text.splitlines()[0] #Gets the song TITLE + DURATION as a string, then splits the lines into a list , where the first item is the name and the second is the duration
-        print(Song_Name)#Prints the song name
+        WebDriverWait(driver, 10).until(    
+            EC.element_to_be_clickable(
+                (By.ID,"btnSubmit")
+            )
+        )
+        Start_button = driver.find_element(By.ID,"btnSubmit")
+        Start_button.click()#Clicks on the Start button
+
+
+
+        Convert_button = driver.find_element(By.ID,"btn22")
+        Convert_button.click()#Clicks on the Convert button
+
+
+        Song_Name_with_pun = driver.find_element(By.ID,"videoTitle").text.splitlines()[0] #Gets the song TITLE + DURATION as a string, then splits the lines into a list , where the first item is the name and the second is the duration
+        Song_Name_without_pun = Song_Name_with_pun        
+                # initializing punctuations string
+        punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
+        
+        # Removing punctuations in string
+        # Using loop + punctuation string
+        for ele in Song_Name_without_pun:
+            if ele in punc:
+                Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
+
+        
+        print(Song_Name_with_pun)
+        print(Song_Name_without_pun)
 
 
         #Waits 10 seconds untill it find the element if the id=btn192 when it will have the text Download and then the program will proceed
@@ -113,8 +183,46 @@ def Youtube_To_MP3_Download(youtube_link,download_location,file_format):
             )
         )
 
-        my_element = driver.find_element(By.ID,"btn22")
-        my_element.click()#clicks on the Download button
+        Download_button = driver.find_element(By.ID,"btn22")
+        Download_button.click()#clicks on the Download button
+
+
+
+        ###########Renames the file to be user friendly + checks if the download has been completed
+        script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
+        # directory/folder path
+        dir_path = (f"{script_directory}\downloads\mp4")
+
+        dir_list = os.listdir(dir_path)
+        print("Files and directories in '", dir_path, "' :")
+
+        # prints all files
+        print(dir_list)
+
+
+        #code to remove whitespace
+        def remove(string):
+            return string.replace(" ", "")
+
+
+        try:
+            found = False
+            while(found==False):
+                for file in os.listdir(dir_path):
+                    if remove(file).find(remove(Song_Name_with_pun)) > -1:
+                        title = file.title()
+                        #print(f'title -{title}')
+                        if file.endswith("mp4"):
+                            os.rename(os.path.join(dir_path, file),os.path.join(dir_path,f"{Song_Name_with_pun}.mp4"))
+                            found=True
+        except:
+            print("file name already exists")
+
+        print('download has been completed')
+        #==============================================================================
+
+
+
 
 
 
@@ -124,7 +232,7 @@ def Youtube_To_MP3_Download(youtube_link,download_location,file_format):
 create_download_folder_if_not_exists()
 
 #================
-File_format="mp3"
+File_format="mp4"
 #================
 
 #download the file to the right path due to the format
@@ -137,7 +245,7 @@ if File_format == "mp4":
     File_location = script_directory         
 
 
-Youtube_link="https://www.youtube.com/watch?v=8wfTugYicqc"
+Youtube_link="https://www.youtube.com/watch?v=oSf3Nqd0qnY"
 
 Youtube_To_MP3_Download(Youtube_link,File_location,File_format)#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )
 
