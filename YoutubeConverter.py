@@ -147,7 +147,7 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
                     def remove(string):
                         return string.replace(" ", "")
 
-                    
+                    timeoutError = False
                     try:                        
                         # Removing punctuations in string
                         # Using loop + punctuation string
@@ -161,10 +161,27 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
                         for ele in Song_Name_without_pun:
                             if ele in punc:
                                 Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
-                
+
+
+                        #timeout system
+                        start_time = time.time()
+                        seconds = 10
+
 
                         found = False
                         while(found==False):
+                            #timeout system
+                            current_time = time.time()
+                            elapsed_time = current_time - start_time
+
+                            if elapsed_time > seconds:
+                                print("Finished iterating in: " + str(int(elapsed_time))  + " seconds")
+                                if(found==False):
+                                    print("Error - Timeout ,could not confirm the file.")
+                                    timeoutError = True
+                                break
+                            ##################
+
                             for file in os.listdir(dir_path):
                                 ftitle = file
                                 ftitle = ftitle.translate(str.maketrans('', '', string.punctuation))#removes punctuation
@@ -177,8 +194,8 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
                                         
                     except:
                         print("file name already exists")
-
-                    print('download has been completed')
+                    if timeoutError ==False:
+                        print('download has been completed')
                     driver.switch_to.window(driver.window_handles[1])
                     driver.close()
                     driver.switch_to.window(driver.window_handles[0])
