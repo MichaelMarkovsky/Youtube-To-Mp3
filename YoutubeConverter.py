@@ -151,8 +151,16 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
                     try:                        
                         # Removing punctuations in string
                         # Using loop + punctuation string
-                        Song_Name_without_pun = Song_Name_without_pun.translate(str.maketrans('', '', string.punctuation))#removes punctuation
+                        Song_Name_without_pun = Song_Name_without_pun.translate(str.maketrans('', '', string.punctuation))#removes punctuation,but not all(like ’). therefore i make a second remove pun function:
 
+                        # initializing punctuations string
+                        punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~’'''
+                        
+                        # Removing punctuations in string
+                        # Using loop + punctuation string
+                        for ele in Song_Name_without_pun:
+                            if ele in punc:
+                                Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
                 
 
                         found = False
@@ -171,7 +179,11 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
                         print("file name already exists")
 
                     print('download has been completed')
-                    #driver.close()
+                    driver.switch_to.window(driver.window_handles[1])
+                    driver.close()
+                    driver.switch_to.window(driver.window_handles[0])
+                    
+                    
 
                     if link ==youtube_links[-1]:
                         #after the last song the drive will quite
@@ -298,7 +310,12 @@ if File_format == "mp4":
     script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads\mp4"
     File_location = script_directory         
 
+# Youtube_links=[]
 
+# with open("links.txt") as file:
+#   for item in file:
+#     Youtube_links.append(item.strip())
+#     print(item.strip())
 
 Youtube_links = ["https://www.youtube.com/watch?v=oSf3Nqd0qnY","https://www.youtube.com/watch?v=4GGIdZidcno&list=RDMM&start_radio=1","https://www.youtube.com/watch?v=335VEasxI2E&list=RDMM&index=4","https://www.youtube.com/watch?v=0YF8vecQWYs","https://www.youtube.com/watch?v=WCOvg2rvzmM"]
 Youtube_links = list(set(Youtube_links))#if the user entered 2 of the same links,then "set" will remove one of them and ill turn this back into a list. this will be the UPDATED list of links that will be in use, the table in the ui will be updated to this.
