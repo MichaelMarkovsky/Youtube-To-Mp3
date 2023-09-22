@@ -34,13 +34,16 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
     options = webdriver.ChromeOptions()
     options.add_experimental_option("detach", True)
 
+    options.binary_location = r"C:\Users\misha\Desktop\Coding\Coding projects\Python\WebScraping and Automation Python\Youtube Converter\chrome-win64\chrome.exe"
+    chrome_driver_binary = r"C:\Users\misha\Desktop\Coding\Coding projects\Python\WebScraping and Automation Python\Youtube Converter\chromedriver.exe"
+    
+
     if (download_location!= None):#if ive given a file location then proceed, else download the file to the default folder(which is the "Download" folder)
         #Change the default download location
         prefs = {'download.default_directory': download_location}
         options.add_experimental_option('prefs', prefs)
 
-
-    driver = webdriver.Chrome(options=options)#open the browser
+    driver = webdriver.Chrome(chrome_driver_binary, chrome_options=options)
 
     
     if (file_format=="mp3"):
@@ -118,6 +121,37 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
                     print(Song_Name_without_pun)
 
 
+
+                    script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
+                    # directory/folder path
+                    dir_path = (f"{script_directory}\downloads\mp3")
+
+                    dir_list = os.listdir(dir_path)
+
+
+                    #code to remove whitespace
+                    def remove(string):
+                        return string.replace(" ", "")
+
+                    #if the file exists then dont download it,else do.
+
+                    # Removing punctuations in string
+                    # Using loop + punctuation string
+                    Song_Name_without_pun = Song_Name_without_pun.translate(str.maketrans('', '', string.punctuation))#removes punctuation,but not all(like ’). therefore i make a second remove pun function:
+
+                    # initializing punctuations string
+                    punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~’'''
+                    
+                    # Removing punctuations in string
+                    # Using loop + punctuation string
+                    for ele in Song_Name_without_pun:
+                        if ele in punc:
+                            Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
+
+
+
+
+                   
                     #Waits 10 seconds untill it find the element if the id=btn192 when it will have the text Download and then the program will proceed
                     WebDriverWait(driver, 10).until(    
                         EC.text_to_be_present_in_element(
@@ -132,37 +166,13 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
 
 
                     ###########Renames the file to be user friendly + checks if the download has been completed
-                    script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
-                    # directory/folder path
-                    dir_path = (f"{script_directory}\downloads\mp3")
-
-                    dir_list = os.listdir(dir_path)
                     print("Files and directories in '", dir_path, "' :")
 
                     # prints all files
                     print(dir_list)
 
-
-                    #code to remove whitespace
-                    def remove(string):
-                        return string.replace(" ", "")
-
                     timeoutError = False
                     try:                        
-                        # Removing punctuations in string
-                        # Using loop + punctuation string
-                        Song_Name_without_pun = Song_Name_without_pun.translate(str.maketrans('', '', string.punctuation))#removes punctuation,but not all(like ’). therefore i make a second remove pun function:
-
-                        # initializing punctuations string
-                        punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~’'''
-                        
-                        # Removing punctuations in string
-                        # Using loop + punctuation string
-                        for ele in Song_Name_without_pun:
-                            if ele in punc:
-                                Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
-
-
                         #timeout system
                         start_time = time.time()
                         seconds = 10
@@ -199,19 +209,22 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
                     driver.switch_to.window(driver.window_handles[1])
                     driver.close()
                     driver.switch_to.window(driver.window_handles[0])
-                    
-                    
+
 
                     if link ==youtube_links[-1]:
                         #after the last song the drive will quite
                         print(f"last item {link}")
                         driver.quit()
-                    #==============================================================================
+                    #==============================================================================           
+                
+        
+                        
                 except:
                     print("ERROR - timeout")
                     if link ==youtube_links[-1]:
                         #after the last song the drive will quite
                         print(f"last item {link}")
+                        time.sleep(2)
                         driver.quit()
 
         download_songs(youtube_links)
@@ -330,9 +343,9 @@ if File_format == "mp4":
 # Youtube_links=[]
 
 # with open("links.txt") as file:
-#   for item in file:
-#     Youtube_links.append(item.strip())
-#     print(item.strip())
+#    for item in file:
+#      Youtube_links.append(item.strip())
+#      print(item.strip())
 
 Youtube_links = ["https://www.youtube.com/watch?v=oSf3Nqd0qnY","https://www.youtube.com/watch?v=4GGIdZidcno&list=RDMM&start_radio=1","https://www.youtube.com/watch?v=335VEasxI2E&list=RDMM&index=4","https://www.youtube.com/watch?v=0YF8vecQWYs","https://www.youtube.com/watch?v=WCOvg2rvzmM"]
 Youtube_links = list(set(Youtube_links))#if the user entered 2 of the same links,then "set" will remove one of them and ill turn this back into a list. this will be the UPDATED list of links that will be in use, the table in the ui will be updated to this.
