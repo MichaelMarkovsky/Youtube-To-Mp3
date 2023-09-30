@@ -118,7 +118,7 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
 
                     
                     print(Song_Name_with_pun)
-                    print(Song_Name_without_pun)
+                    #print(Song_Name_without_pun)
 
 
 
@@ -154,17 +154,16 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
                     
 
                     File_Exists = False
+
                     file_sum = len(os.listdir(dir_path))
                     for file in os.listdir(dir_path):
                                 ftitle = file
                                 ftitle = ftitle.translate(str.maketrans('', '', string.punctuation))#removes punctuation
                                 file_sum -=1
                                 if remove(ftitle.lower()).find(remove(Song_Name_without_pun.lower())) > -1:#if file does not exist,then rename it and complete
-                                    pass
-                                else:
-                                    if file_sum ==-1:
-                                        File_Exists = True
-                                        print("file exists")
+                                    File_Exists = True
+                                    print("file exists")
+
 
                     if File_Exists == False:
                         WebDriverWait(driver, 10).until(    
@@ -180,10 +179,10 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
 
                         
                         ###########checks if the download has been completed
-                        print("Files and directories in '", dir_path, "' :")
+                        #print("Files and directories in '", dir_path, "' :")
 
                         # prints all files
-                        print(dir_list)
+                        #print(dir_list)
 
                         timeoutError = False
                         try:                        
