@@ -47,13 +47,13 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
 
     
     if (file_format=="mp3"):
-        driver.get("https://en1.y2mate.is/w0p8g/youtube-to-mp3.html")#gets into this url(opens this site)
+        driver.get("https://ytmp3.nu/nBlF/")#gets into this url(opens this site)
 
         #timeout:
         driver.implicitly_wait(10)#waits untill finds the elemnt, an x amount of time in order to prevent errors because of slow processes like loading the site,server..its a timeout for all elements
     
         ##########inserting the first song so that the process will be shorter for this site##############
-        Textbox_element = driver.find_element(By.ID,"txtUrl")#selects an element and stores it as a web element
+        Textbox_element = driver.find_element(By.ID,"url")#selects an element and stores it as a web element
         Textbox_element.click()
         Textbox_element.send_keys("https://www.youtube.com/watch?v=3zh9Wb1KuW8&list=RDMM&index=3")#"types"
 
@@ -61,51 +61,51 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
 
         WebDriverWait(driver, 10).until(    
             EC.element_to_be_clickable(
-                (By.ID,"btnSubmit")
+                (By.XPATH,"/html/body/form/div[2]/input[2]")
             )
         )
-        Start_button = driver.find_element(By.ID,"btnSubmit")
-        Start_button.click()#Clicks on the Start button
+        Convert_button = driver.find_element(By.XPATH,"/html/body/form/div[2]/input[2]")
+        Convert_button.click()#Clicks on the convert button
 
         WebDriverWait(driver, 10).until(    
             EC.element_to_be_clickable(
-                (By.ID,"btn192")
+                (By.XPATH,"/html/body/form/div[2]/a[2]")
             )
         )
-        Textbox_element.clear()
+
+        
         #######################################################################################################
 
         def download_songs(youtube_links):
             for link in youtube_links:
                 try:
                     print(link)
+                    Convert_button2 = driver.find_element(By.XPATH,"/html/body/form/div[2]/a[2]")
+                    Convert_button2.click()#Clicks on the convert button
 
-                    Textbox_element = driver.find_element(By.ID,"txtUrl")#selects an element and stores it as a web element
-                    Textbox_element.clear()
-                    Textbox_element.click()
+                    Textbox_element = driver.find_element(By.ID,"url")#selects an element and stores it as a web element
                     Textbox_element.send_keys(link)#"types"
 
 
                     WebDriverWait(driver, 10).until(    
                         EC.element_to_be_clickable(
-                            (By.ID,"btnSubmit")
+                            (By.XPATH,"/html/body/form/div[2]/input[2]")
                         )
                     )
-                    Start_button = driver.find_element(By.ID,"btnSubmit")
-                    Start_button.click()#Clicks on the Start button
+                    Convert_button = driver.find_element(By.XPATH,"/html/body/form/div[2]/input[2]")
+                    Convert_button.click()#Clicks on the convert button
 
 
+
+
+                    #waits untill title is visible in the site
                     WebDriverWait(driver, 10).until(    
-                    EC.element_to_be_clickable(
-                        (By.ID,"btn192")
+                        lambda driver:(
+                            driver.find_element(By.XPATH,"/html/body/form/div[1]").text.splitlines()[0]!="loading title"
                         )
                     )
 
-                    Convert_button = driver.find_element(By.ID,"btn192")
-                    Convert_button.click()#Clicks on the Convert button
-
-
-                    Song_Name_with_pun = driver.find_element(By.ID,"videoTitle").text.splitlines()[0] #Gets the song TITLE + DURATION as a string, then splits the lines into a list , where the first item is the name and the second is the duration
+                    Song_Name_with_pun = driver.find_element(By.XPATH,"/html/body/form/div[1]").text.splitlines()[0] #Gets the song TITLE + DURATION as a string, then splits the lines into a list , where the first item is the name and the second is the duration
                     Song_Name_without_pun = Song_Name_with_pun        
                             # initializing punctuations string
                     punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~」「+'''
@@ -118,16 +118,18 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
 
                     
                     print(Song_Name_with_pun)
-                    print(Song_Name_without_pun)
+                    #print(Song_Name_without_pun)
 
 
 
                     script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
                     # directory/folder path
                     dir_path = (f"{script_directory}\downloads\mp3")
-
                     dir_list = os.listdir(dir_path)
-
+                    
+                    for file in dir_list:
+                        #print(f"files in this folder:{file.title()}")
+                        pass
 
                     #code to remove whitespace
                     def remove(string):
@@ -149,66 +151,77 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
                             Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
 
 
+                    
 
+                    File_Exists = False
 
-                   
-                    #Waits 10 seconds untill it find the element if the id=btn192 when it will have the text Download and then the program will proceed
-                    WebDriverWait(driver, 10).until(    
-                        EC.text_to_be_present_in_element(
-                            (By.ID,"btn192"), #the element
-                            "Download"#expected text
-                        )
-                    )
-
-                    Download_button = driver.find_element(By.ID,"btn192")
-                    Download_button.click()#clicks on the Download button
-
-
-
-                    ###########Renames the file to be user friendly + checks if the download has been completed
-                    print("Files and directories in '", dir_path, "' :")
-
-                    # prints all files
-                    print(dir_list)
-
-                    timeoutError = False
-                    try:                        
-                        #timeout system
-                        start_time = time.time()
-                        seconds = 10
-
-
-                        found = False
-                        while(found==False):
-                            #timeout system
-                            current_time = time.time()
-                            elapsed_time = current_time - start_time
-
-                            if elapsed_time > seconds:
-                                print("Finished iterating in: " + str(int(elapsed_time))  + " seconds")
-                                if(found==False):
-                                    print("Error - Timeout ,could not confirm the file.")
-                                    timeoutError = True
-                                break
-                            ##################
-
-                            for file in os.listdir(dir_path):
+                    file_sum = len(os.listdir(dir_path))
+                    for file in os.listdir(dir_path):
                                 ftitle = file
                                 ftitle = ftitle.translate(str.maketrans('', '', string.punctuation))#removes punctuation
+                                file_sum -=1
                                 if remove(ftitle.lower()).find(remove(Song_Name_without_pun.lower())) > -1:#if file does not exist,then rename it and complete
-                                    title = file.title()
-                                    if file.endswith("mp3"):
-                                        os.rename(os.path.join(dir_path, file),os.path.join(dir_path,f"{Song_Name_without_pun}.mp3"))
-                                        found=True
-                                
-                                        
-                    except:
-                        print("file name already exists")
-                    if timeoutError ==False:
-                        print('download has been completed')
-                    driver.switch_to.window(driver.window_handles[1])
-                    driver.close()
-                    driver.switch_to.window(driver.window_handles[0])
+                                    File_Exists = True
+                                    print("file exists")
+
+
+                    if File_Exists == False:
+                        WebDriverWait(driver, 10).until(    
+                        EC.element_to_be_clickable(
+                            (By.XPATH,"/html/body/form/div[2]/a[1]")
+                            )
+                        )
+
+                        Download_button = driver.find_element(By.XPATH,"/html/body/form/div[2]/a[1]")
+                        Download_button.click()#Clicks on the download button
+
+
+
+                        
+                        ###########checks if the download has been completed
+                        #print("Files and directories in '", dir_path, "' :")
+
+                        # prints all files
+                        #print(dir_list)
+
+                        timeoutError = False
+                        try:                        
+                            #timeout system
+                            start_time = time.time()
+                            seconds = 10
+
+
+                            found = False
+                            while(found==False):
+                                #timeout system
+                                current_time = time.time()
+                                elapsed_time = current_time - start_time
+
+                                if elapsed_time > seconds:
+                                    print("Finished iterating in: " + str(int(elapsed_time))  + " seconds")
+                                    if(found==False):
+                                        print("Error - Timeout ,could not confirm the file.")
+                                        timeoutError = True
+                                    break
+                                ##################
+
+                                for file in os.listdir(dir_path):
+                                    ftitle = file
+                                    ftitle = ftitle.translate(str.maketrans('', '', string.punctuation))#removes punctuation
+                                    if remove(ftitle.lower()).find(remove(Song_Name_without_pun.lower())) > -1:#if file does not exist,then rename it and complete
+                                        title = file.title()
+                                        if file.endswith("mp3"):
+                                            #os.rename(os.path.join(dir_path, file),os.path.join(dir_path,f"{Song_Name_without_pun}.mp3"))
+                                            found=True
+                                    
+                                            
+                        except:
+                            print("file name already exists")
+                        if timeoutError ==False:
+                            print('download has been completed')
+                        driver.switch_to.window(driver.window_handles[1])
+                        driver.close()
+                        driver.switch_to.window(driver.window_handles[0])
 
 
                     if link ==youtube_links[-1]:
@@ -230,91 +243,7 @@ def Youtube_To_MP3_Download(youtube_links,download_location,file_format):
         download_songs(youtube_links)
 
     if (file_format=="mp4"):
-        driver.get("https://en1.y2mate.is/w0p8g/youtube-to-mp4.html")#gets into this url(opens this site)
-
-        #timeout:
-        driver.implicitly_wait(10)#waits untill finds the elemnt, an x amount of time in order to prevent errors because of slow processes like loading the site,server..its a timeout for all elements
-
-
-        Textbox_element = driver.find_element(By.ID,"txtUrl")#selects an element and stores it as a web element
-        Textbox_element.click()
-        Textbox_element.send_keys(youtube_link)#"types"
-
-
-        WebDriverWait(driver, 10).until(    
-            EC.element_to_be_clickable(
-                (By.ID,"btnSubmit")
-            )
-        )
-        Start_button = driver.find_element(By.ID,"btnSubmit")
-        Start_button.click()#Clicks on the Start button
-
-
-
-        Convert_button = driver.find_element(By.ID,"btn22")
-        Convert_button.click()#Clicks on the Convert button
-
-
-        Song_Name_with_pun = driver.find_element(By.ID,"videoTitle").text.splitlines()[0] #Gets the song TITLE + DURATION as a string, then splits the lines into a list , where the first item is the name and the second is the duration
-        Song_Name_without_pun = Song_Name_with_pun        
-                # initializing punctuations string
-        punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~'''
-        
-        # Removing punctuations in string
-        # Using loop + punctuation string
-        for ele in Song_Name_without_pun:
-            if ele in punc:
-                Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
-
-        
-        print(Song_Name_with_pun)
-        print(Song_Name_without_pun)
-
-
-        #Waits 10 seconds untill it find the element if the id=btn192 when it will have the text Download and then the program will proceed
-        WebDriverWait(driver, 10).until(    
-            EC.text_to_be_present_in_element(
-                (By.ID,"btn22"), #the element
-                "Download"#expected text
-            )
-        )
-
-        Download_button = driver.find_element(By.ID,"btn22")
-        Download_button.click()#clicks on the Download button
-
-
-
-        ###########Renames the file to be user friendly + checks if the download has been completed
-        script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
-        # directory/folder path
-        dir_path = (f"{script_directory}\downloads\mp4")
-
-        dir_list = os.listdir(dir_path)
-        print("Files and directories in '", dir_path, "' :")
-
-        # prints all files
-        print(dir_list)
-
-
-        #code to remove whitespace
-        def remove(string):
-            return string.replace(" ", "")
-
-
-        try:
-            found = False
-            while(found==False):
-                for file in os.listdir(dir_path):
-                    if remove(file).find(remove(Song_Name_with_pun)) > -1:
-                        title = file.title()
-                        #print(f'title -{title}')
-                        if file.endswith("mp4"):
-                            os.rename(os.path.join(dir_path, file),os.path.join(dir_path,f"{Song_Name_with_pun}.mp4"))
-                            found=True
-        except:
-            print("file name already exists")
-
-        print('download has been completed')
+        pass
         #==============================================================================
 
 
