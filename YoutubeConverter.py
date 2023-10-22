@@ -1,3 +1,4 @@
+#imports for webscraping
 from selenium import webdriver#importing a library that will automate the action of openning a web browser
 from selenium.webdriver.common.by import By#imports a library that alows us to make specific selections(class,id..)
 from selenium.webdriver.support.ui import WebDriverWait
@@ -11,7 +12,18 @@ import string
 from string import punctuation
 import time
 
+#IMPORTS FOR UI
+#solves the issue of the UI being blurry
+from ctypes import windll
+windll.shcore.SetProcessDpiAwareness(1)
 
+import tkinter as tk
+import tkinter
+from tkinter import ttk#sub module to use themed widgests
+from tkinter.scrolledtext import ScrolledText
+
+import sv_ttk
+import threading
 
 
 def create_download_folder_if_not_exists():
@@ -243,23 +255,127 @@ def Youtube_To_MP3_Download(youtube_links,download_location):
 
 
 
+#tkinter.Tk()#the window
+class App(tkinter.Tk):
+    def __init__(self):
+        super().__init__()
+        #setup
+        create_download_folder_if_not_exists()
+        self.table_list_links = set()  
+        sv_ttk.use_dark_theme()
+        self.title("Youtube Converter")
+        self.resizable(0,0)#Don't allow the screen to be resized
+        self.iconbitmap("Icon.ico")#replace the defult icon with a Transparent Icon
+
+        #widgets
+        self.widgets = Widgets(self,self.table_list_links)
+
+        #run
+        self.mainloop()#the loop of the application
+
+
+class Widgets (ttk.Frame):
+    def __init__(self,parent,table_list_links):#inherants the window
+        super().__init__(parent)
+        self.pack()
+
+        self.table_list_links = table_list_links
+
+        self.interface()
+        self.table()
+
+
+    def interface(self):
+        interface_frame = ttk.LabelFrame(self,text="Interface")
+        interface_frame.grid(row=0, column=0,padx=20,pady=10)
+
+        self.text_widget = ScrolledText(interface_frame, wrap="none", width=30, height=4, font=('Arial', 9))
+        self.text_widget.grid(row=1,column=0,padx=5,pady=5, sticky="ew")
+
+
+        insert_button = ttk.Button(interface_frame, text="Insert",command=self.Insert_link)
+        insert_button.grid(row=2,column=0,padx=5,pady=5, sticky="nsew")
+
+        clear_button = ttk.Button(interface_frame, text="Clear Table",command=self.Clear_table_list)
+        clear_button.grid(row=3,column=0,padx=5,pady=5, sticky="nsew")
+
+
+        separator = ttk.Separator(interface_frame)
+        separator.grid(row =4,column=0,padx=(20,10),pady=10,sticky="ew")
+
+        download_button = ttk.Button(interface_frame, text="Download!", style="Accent.TButton",command=threading.Thread(target=self.Download).start)
+        download_button.grid(row=5,column=0,padx=5,pady=7)
+
+
+    def table(self):
+        Tableframe = ttk.Frame(self)
+        Tableframe.grid(row=0, column=1,padx=0,pady=10)
+
+        tablescroll = ttk.Scrollbar(Tableframe)
+        tablescroll.pack(side="right",fill="y")
+
+        cols = ("Name","Status","Link")
+        self.table = ttk.Treeview(Tableframe,show="headings",yscrollcommand=tablescroll.set,columns=cols , height=10)
+        self.table.column("Name",width=200)
+        self.table.column("Status",width=100)
+        self.table.column("Link",width=400)
+
+        # define headings
+        self.table.heading('Name', text='Name')
+        self.table.heading('Status', text='Status')
+        self.table.heading('Link', text='Link')
+        self.table.pack()
+
+
+
+    def clear_table(self):
+        self.table.delete(*self.table.get_children())
+
+
+    def Clear_table_list(self):
+        self.clear_table()
+        self.table_list_links.clear() 
+
+    def Insert_link(self):
+        #delete all the rows of the table inorder to bypass a bug
+        self.clear_table()
+
+        links = self.text_widget.get("1.0", tk.END)
+
+        # Remove empty items from the list
+        no_empty_links = [item for item in links.splitlines() if item != ""]
+
+        filtered_links = set(no_empty_links)
+        
+        self.table_list_links.update(filtered_links)
+
+        #insert the list of links to the table
+        for link in self.table_list_links:
+            self.table.insert('',tk.END,values=("","",link))
+
+    def Download(self):#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )
+        #download the file to the right path due to the format
+        script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads"
+        File_location = script_directory          
+        #Example:   "C:\\Users\\misha\\Desktop\\" 
+
+        Youtube_links = list(self.table_list_links)
+        print(Youtube_links)
+        Youtube_To_MP3_Download(Youtube_links,File_location)#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )
 
 
 
 
-create_download_folder_if_not_exists()
 
 
-#download the file to the right path due to the format
-script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads"
-File_location = script_directory          
-#Example:   "C:\\Users\\misha\\Desktop\\" 
+
+
+
+App()#run
     
 
-Youtube_links = ["https://www.youtube.com/watch?v=oSf3Nqd0qnY","https://www.youtube.com/watch?v=4GGIdZidcno&list=RDMM&start_radio=1","https://www.youtube.com/watch?v=335VEasxI2E&list=RDMM&index=4","https://www.youtube.com/watch?v=0YF8vecQWYs","https://www.youtube.com/watch?v=WCOvg2rvzmM"]
-Youtube_links = list(set(Youtube_links))#if the user entered 2 of the same links,then "set" will remove one of them and ill turn this back into a list. this will be the UPDATED list of links that will be in use, the table in the ui will be updated to this.
-print(Youtube_links)
+# Youtube_links = ["https://www.youtube.com/watch?v=oSf3Nqd0qnY","https://www.youtube.com/watch?v=4GGIdZidcno&list=RDMM&start_radio=1","https://www.youtube.com/watch?v=335VEasxI2E&list=RDMM&index=4","https://www.youtube.com/watch?v=0YF8vecQWYs","https://www.youtube.com/watch?v=WCOvg2rvzmM"]
+# Youtube_links = list(set(Youtube_links))#if the user entered 2 of the same links,then "set" will remove one of them and ill turn this back into a list. this will be the UPDATED list of links that will be in use, the table in the ui will be updated to this.
+# print(Youtube_links)
 
-
-Youtube_To_MP3_Download(Youtube_links,File_location)#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )
 
