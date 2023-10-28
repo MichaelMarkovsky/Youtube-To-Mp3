@@ -37,14 +37,13 @@ class App(tkinter.Tk):
         super().__init__()
         #setup
         self.create_download_folder_if_not_exists()
-        self.table_list_links = set()
         sv_ttk.use_dark_theme()
         self.title("Youtube Converter")
         self.resizable(0,0)#Don't allow the screen to be resized
         self.iconbitmap("Icon.ico")#replace the defult icon with a Transparent Icon
 
         #widgets
-        self.widgets = Widgets(self,self.table_list_links)
+        self.widgets = Widgets(self)
 
         #run
         self.mainloop()#the loop of the application
@@ -64,12 +63,13 @@ class App(tkinter.Tk):
     
 
 class Widgets (ttk.Frame):
-    def __init__(self,parent,table_list_links):#inherants the window
+    def __init__(self,parent):#inherants the window
         super().__init__(parent)
         self.pack()
 
-        self.table_list_links = table_list_links
+        self.table_list_links = set()
         self.table_list_of_tuples = list()
+        self.event = Event()
         
         # self.event = Event()
         # self.Bthread = threading.Thread(target=self.Download)
@@ -97,7 +97,10 @@ class Widgets (ttk.Frame):
         separator = ttk.Separator(interface_frame)
         separator.grid(row =4,column=0,padx=(20,10),pady=10,sticky="ew")
 
-        self.download_button = ttk.Button(interface_frame, text="Download!", style="Accent.TButton",command=self.Download)
+        # Create a StringVar to store the button text
+        self.button_var = tk.StringVar()
+        self.button_var.set("Download!")
+        self.download_button = ttk.Button(interface_frame, textvariable=self.button_var, style="Accent.TButton",command=self.Download)
         self.download_button.grid(row=5,column=0,padx=5,pady=7)
 
 
@@ -144,11 +147,24 @@ class Widgets (ttk.Frame):
         
         self.table_list_links.update(filtered_links)
 
-        #insert the list of links to the table
+        print(f'self.table_list_links{self.table_list_links}')
+
+
+        #insert the list of links to the table if not exists
+        check_list = list()
+        for item in self.table_list_of_tuples:
+            check_list.append(item[2])
+
         for link in self.table_list_links:
-            self.table.insert('',tk.END,values=("","",link))
-            self.table_list_of_tuples.append(tuple(("","",link)))
+            if link not in check_list:
+                #self.table.insert('',tk.END,values=("","",link))
+                self.table_list_of_tuples.append(tuple(("","",link)))
+
+        for tuple_ in self.table_list_of_tuples:
+            self.table.insert('',tk.END,values=(tuple_))
         print(self.table_list_of_tuples)
+
+        self.text_widget.delete(1.0, tk.END)  # Delete from the start to the end
 
 
     def update_table(self):
@@ -160,33 +176,43 @@ class Widgets (ttk.Frame):
 
     def Download(self):#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )
         #download the file to the right path due to the format
-        event = Event()
         
-        def run(event: Event):
-            while True:
-                script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads"
-                File_location = script_directory          
-                #Example:   "C:\\Users\\misha\\Desktop\\" 
+        
+        if self.button_var.get() == "Download!":
+            self.button_var.set("Stop!")
+            def run(event: Event):
+                while True:
+                    script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads"
+                    File_location = script_directory          
+                    #Example:   "C:\\Users\\misha\\Desktop\\" 
 
-                Youtube_links = list(self.table_list_links)
-                print(f'links:{Youtube_links}')
+                    Youtube_links = list(self.table_list_links)
+                    driverr = self.driver(File_location)
+                    self.Youtube_To_MP3_Download(Youtube_links,driverr)#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )                    
+                    if self.event.is_set():
+                        print("this event has been stopped prematurely")
+                        self.button_var.set("Download!")
+                        self.event.clear()
+                        break
+                    else:
+                        print("this event has been stopped maturely")
+                        self.button_var.set("Download!")
+                        break
 
-                self.Youtube_To_MP3_Download(Youtube_links,File_location)#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )
-                if event.is_set():
-                    print("this event has been stopped prematurely")
-                    break
-                else:
-                    print("this event has been stopped maturely")
 
-        t = threading.Thread(target=run, args=(event,))
-        t.start()
-        event.set()
 
+            t = threading.Thread(target=run, args=(self.event,))
+            t.daemon = True  # Daemon threads are background threads that automatically exit when the main program finishes.
+            t.start()
+        else:
+            self.event.set()
+            self.button_var.set("Download!")
+        
+        print(f'set of links:{self.table_list_links}')
         print(self.table_list_of_tuples)
-        
-
-
-    def Youtube_To_MP3_Download(self,youtube_links,download_location):
+    
+    
+    def driver(self,download_location):
         #SETUP
         # these 2 lines make it so that the browser wont close automaticly
         options = webdriver.ChromeOptions()
@@ -202,8 +228,12 @@ class Widgets (ttk.Frame):
             options.add_experimental_option('prefs', prefs)
 
         driver = webdriver.Chrome(chrome_driver_binary, chrome_options=options)
+        return driver
 
 
+    def Youtube_To_MP3_Download(self,youtube_links,driver):
+        
+        
 
         #WEBSCRAPING STARTS HERE
         driver.get("https://ytmp3.nu/nBlF/")#gets into this url(opens this site)
@@ -235,186 +265,198 @@ class Widgets (ttk.Frame):
         
         #######################################################################################################
 
-        def download_songs(youtube_links):
+        def download_songs(youtube_links,driver):
             for link in youtube_links:
-                try:
-                    print(link)
+                print(self.event.is_set())
+                if self.event.is_set() == True:#if i pressed the button to stop,then stop downloading the links and quite the driver
+                    print("quites the driver")
+                    driver.quit()
+                    return
+                else:
+                    songName = ''
                     def link_index():#returns the index of the item that has this link in order to add name and status
-                        for item in self.table_list_of_tuples:
-                            if item[2] == link:
-                                return (self.table_list_of_tuples.index(item))
+                            for item in self.table_list_of_tuples:
+                                if item[2] == link:
+                                    return (self.table_list_of_tuples.index(item))
+                    try:
+                        print(link)
+                        
 
-                    Convert_button2 = driver.find_element(By.XPATH,"/html/body/form/div[2]/a[2]")
-                    Convert_button2.click()#Clicks on the convert button
+                        Convert_button2 = driver.find_element(By.XPATH,"/html/body/form/div[2]/a[2]")
+                        Convert_button2.click()#Clicks on the convert button
 
-                    Textbox_element = driver.find_element(By.ID,"url")#selects an element and stores it as a web element
-                    Textbox_element.send_keys(link)#"types"
-
-
-                    WebDriverWait(driver, 10).until(    
-                        EC.element_to_be_clickable(
-                            (By.XPATH,"/html/body/form/div[2]/input[2]")
-                        )
-                    )
-                    Convert_button = driver.find_element(By.XPATH,"/html/body/form/div[2]/input[2]")
-                    Convert_button.click()#Clicks on the convert button
+                        Textbox_element = driver.find_element(By.ID,"url")#selects an element and stores it as a web element
+                        Textbox_element.send_keys(link)#"types"
 
 
-
-
-                    #waits untill title is visible in the site
-                    WebDriverWait(driver, 10).until(    
-                        lambda driver:(
-                            driver.find_element(By.XPATH,"/html/body/form/div[1]").text.splitlines()[0]!="loading title"
-                        )
-                    )
-
-                    Song_Name_with_pun = driver.find_element(By.XPATH,"/html/body/form/div[1]").text.splitlines()[0] #Gets the song TITLE + DURATION as a string, then splits the lines into a list , where the first item is the name and the second is the duration
-                    Song_Name_without_pun = Song_Name_with_pun        
-                            # initializing punctuations string
-                    punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~」「+'''
-                    
-                    # Removing punctuations in string
-                    # Using loop + punctuation string
-                    for ele in Song_Name_without_pun:
-                        if ele in punc:
-                            Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
-
-                    
-                    print(Song_Name_with_pun)
-                    
-                    #print(Song_Name_without_pun)
-
-
-
-                    script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
-                    # directory/folder path
-                    dir_path = (f"{script_directory}\downloads")
-                    dir_list = os.listdir(dir_path)
-                    
-                    for file in dir_list:
-                        #print(f"files in this folder:{file.title()}")
-                        pass
-
-                    #code to remove whitespace
-                    def remove(string):
-                        return string.replace(" ", "")
-
-                    #if the file exists then dont download it,else do.
-
-                    # Removing punctuations in string
-                    # Using loop + punctuation string
-                    Song_Name_without_pun = Song_Name_without_pun.translate(str.maketrans('', '', string.punctuation))#removes punctuation,but not all(like ’). therefore i make a second remove pun function:
-
-                    # initializing punctuations string
-                    punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~’'''
-                    
-                    # Removing punctuations in string
-                    # Using loop + punctuation string
-                    for ele in Song_Name_without_pun:
-                        if ele in punc:
-                            Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
-
-
-                    
-
-                    File_Exists = False
-
-                    file_sum = len(os.listdir(dir_path))
-                    for file in os.listdir(dir_path):
-                                ftitle = file
-                                ftitle = ftitle.translate(str.maketrans('', '', string.punctuation))#removes punctuation
-                                file_sum -=1
-                                if remove(ftitle.lower()).find(remove(Song_Name_without_pun.lower())) > -1:#if file does not exist,then rename it and complete
-                                    File_Exists = True
-                                    print("file exists")
-                                    self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Error - File exists",link)
-                                    self.update_table()
-
-
-                    if File_Exists == False:
                         WebDriverWait(driver, 10).until(    
-                        EC.element_to_be_clickable(
-                            (By.XPATH,"/html/body/form/div[2]/a[1]")
+                            EC.element_to_be_clickable(
+                                (By.XPATH,"/html/body/form/div[2]/input[2]")
+                            )
+                        )
+                        Convert_button = driver.find_element(By.XPATH,"/html/body/form/div[2]/input[2]")
+                        Convert_button.click()#Clicks on the convert button
+
+
+
+
+                        #waits untill title is visible in the site
+                        WebDriverWait(driver, 10).until(    
+                            lambda driver:(
+                                driver.find_element(By.XPATH,"/html/body/form/div[1]").text.splitlines()[0]!="loading title"
                             )
                         )
 
-                        Download_button = driver.find_element(By.XPATH,"/html/body/form/div[2]/a[1]")
-                        Download_button.click()#Clicks on the download button
+                        Song_Name_with_pun = driver.find_element(By.XPATH,"/html/body/form/div[1]").text.splitlines()[0] #Gets the song TITLE + DURATION as a string, then splits the lines into a list , where the first item is the name and the second is the duration
+                        Song_Name_without_pun = Song_Name_with_pun        
+                                # initializing punctuations string
+                        punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~」「+'''
+                        
+                        # Removing punctuations in string
+                        # Using loop + punctuation string
+                        for ele in Song_Name_without_pun:
+                            if ele in punc:
+                                Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
 
+                        
+                        print(Song_Name_with_pun)
+                        songName +=Song_Name_with_pun
+                        #print(Song_Name_without_pun)
+
+
+
+                        script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
+                        # directory/folder path
+                        dir_path = (f"{script_directory}\downloads")
+                        dir_list = os.listdir(dir_path)
+                        
+                        for file in dir_list:
+                            #print(f"files in this folder:{file.title()}")
+                            pass
+
+                        #code to remove whitespace
+                        def remove(string):
+                            return string.replace(" ", "")
+
+                        #if the file exists then dont download it,else do.
+
+                        # Removing punctuations in string
+                        # Using loop + punctuation string
+                        Song_Name_without_pun = Song_Name_without_pun.translate(str.maketrans('', '', string.punctuation))#removes punctuation,but not all(like ’). therefore i make a second remove pun function:
+
+                        # initializing punctuations string
+                        punc = '''!()-[]{};:'"\,<>./?@#$%^&*_~’'''
+                        
+                        # Removing punctuations in string
+                        # Using loop + punctuation string
+                        for ele in Song_Name_without_pun:
+                            if ele in punc:
+                                Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
 
 
                         
-                        ###########checks if the download has been completed
-                        #print("Files and directories in '", dir_path, "' :")
 
-                        # prints all files
-                        #print(dir_list)
+                        File_Exists = False
 
-                        timeoutError = False
-                        try:                        
-                            #timeout system
-                            start_time = time.time()
-                            seconds = 20
-
-
-                            found = False
-                            while(found==False):
-                                #timeout system
-                                current_time = time.time()
-                                elapsed_time = current_time - start_time
-
-                                if elapsed_time > seconds:
-                                    print("Finished iterating in: " + str(int(elapsed_time))  + " seconds")
-                                    if(found==False):
-                                        print("Error - Timeout ,could not confirm the file.")
-                                        self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Error - Timeout ,could not confirm the file.",link)
-                                        self.update_table()
-                                        timeoutError = True
-                                    break
-                                ##################
-
-                                for file in os.listdir(dir_path):
+                        file_sum = len(os.listdir(dir_path))
+                        for file in os.listdir(dir_path):
                                     ftitle = file
                                     ftitle = ftitle.translate(str.maketrans('', '', string.punctuation))#removes punctuation
+                                    file_sum -=1
                                     if remove(ftitle.lower()).find(remove(Song_Name_without_pun.lower())) > -1:#if file does not exist,then rename it and complete
-                                        title = file.title()
-                                        if file.endswith("mp3"):
-                                            #os.rename(os.path.join(dir_path, file),os.path.join(dir_path,f"{Song_Name_without_pun}.mp3"))
-                                            found=True
-                                    
-                        except:
-                            print("file name already exists")
-                            self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Error - File name already exists",link)
-                            self.update_table()
-                        if timeoutError ==False:
-                            print('download has been completed')
-                            self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Completed",link)
-                            self.update_table()
-                        driver.switch_to.window(driver.window_handles[1])
-                        driver.close()
-                        driver.switch_to.window(driver.window_handles[0])
+                                        File_Exists = True
+                                        print("file exists")
+                                        self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Error - File exists",link)
+                                        self.update_table()
 
 
-                    if link ==youtube_links[-1]:
-                        #after the last song the drive will quite
-                        print(f"last item {link}")
-                        driver.quit()
-                    #==============================================================================           
-                
-        
-                        
-                except:
-                    print("ERROR - timeout")
-                    self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Error - timeout",link)
-                    self.update_table()
-                    if link ==youtube_links[-1]:
-                        #after the last song the drive will quite
-                        print(f"last item {link}")
-                        time.sleep(2)
-                        driver.quit()
+                        if File_Exists == False:
+                            WebDriverWait(driver, 10).until(    
+                            EC.element_to_be_clickable(
+                                (By.XPATH,"/html/body/form/div[2]/a[1]")
+                                )
+                            )
 
-        download_songs(youtube_links)
+                            Download_button = driver.find_element(By.XPATH,"/html/body/form/div[2]/a[1]")
+                            Download_button.click()#Clicks on the download button
+
+
+
+                            
+                            ###########checks if the download has been completed
+                            #print("Files and directories in '", dir_path, "' :")
+
+                            # prints all files
+                            #print(dir_list)
+
+                            timeoutError = False
+                            try:                        
+                                #timeout system
+                                start_time = time.time()
+                                seconds = 20
+
+
+                                found = False
+                                while(found==False):
+                                    #timeout system
+                                    current_time = time.time()
+                                    elapsed_time = current_time - start_time
+
+                                    if elapsed_time > seconds:
+                                        print("Finished iterating in: " + str(int(elapsed_time))  + " seconds")
+                                        if(found==False):
+                                            print("Error - Timeout ,could not confirm the file.")
+                                            self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Error - Timeout ,could not confirm the file.",link)
+                                            self.update_table()
+                                            timeoutError = True
+                                        break
+                                    ##################
+
+                                    for file in os.listdir(dir_path):
+                                        ftitle = file
+                                        ftitle = ftitle.translate(str.maketrans('', '', string.punctuation))#removes punctuation
+                                        if remove(ftitle.lower()).find(remove(Song_Name_without_pun.lower())) > -1:#if file does not exist,then rename it and complete
+                                            title = file.title()
+                                            if file.endswith("mp3"):
+                                                #os.rename(os.path.join(dir_path, file),os.path.join(dir_path,f"{Song_Name_without_pun}.mp3"))
+                                                found=True
+                                        
+                            except:
+                                print("file name already exists")
+                                self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Error - File name already exists",link)
+                                self.update_table()
+                            if timeoutError ==False:
+                                print('download has been completed')
+                                self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Completed",link)
+                                self.update_table()
+                            driver.switch_to.window(driver.window_handles[1])
+                            driver.close()
+                            driver.switch_to.window(driver.window_handles[0])
+
+
+                        if link ==youtube_links[-1]:
+                            #after the last song the drive will quite
+                            print(f"last item {link}")
+                            driver.quit()
+                        #==============================================================================           
+                    
+            
+                            
+                    except:
+                        print("ERROR - timeout")
+                        self.table_list_of_tuples[link_index()] = (songName,"Error - timeout",link)
+                        self.update_table()
+                        if link ==youtube_links[-1]:
+                            #after the last song the drive will quite
+                            print(f"last item {link}")
+                            time.sleep(2)
+                            driver.quit()
+                    
+                    #delete the link from the set
+                    self.table_list_links.remove(link)
+                    print(f'UPDATED self.table_list_links::{self.table_list_links}')
+
+        download_songs(youtube_links,driver)
 
 
 
