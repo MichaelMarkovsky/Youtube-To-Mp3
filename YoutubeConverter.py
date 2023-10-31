@@ -21,10 +21,14 @@ import tkinter as tk
 import tkinter
 from tkinter import ttk#sub module to use themed widgests
 from tkinter.scrolledtext import ScrolledText
+from tkinter import messagebox 
 
 import sv_ttk
 import threading
 from threading import Event
+
+#IMPORT OF Checking if a YouTube link is valid involves verifying its format and structure
+import re
 
 
 
@@ -71,10 +75,6 @@ class Widgets (ttk.Frame):
         self.table_list_of_tuples = list()
         self.event = Event()
         
-        # self.event = Event()
-        # self.Bthread = threading.Thread(target=self.Download)
-        # self.Bthread.setDaemon(True)#it will automatically be terminated when the main program exits.
-
         self.interface()
         self.table()
 
@@ -90,18 +90,29 @@ class Widgets (ttk.Frame):
         insert_button = ttk.Button(interface_frame, text="Insert",command=self.Insert_link)
         insert_button.grid(row=2,column=0,padx=5,pady=5, sticky="nsew")
 
+        delete_row_button = ttk.Button(interface_frame, text="Delete a Link",command=self.delete_selected_row)
+        delete_row_button.grid(row=3,column=0,padx=5,pady=5, sticky="nsew")
+
         clear_button = ttk.Button(interface_frame, text="Clear Table",command=self.Clear_table_list)
-        clear_button.grid(row=3,column=0,padx=5,pady=5, sticky="nsew")
+        clear_button.grid(row=4,column=0,padx=5,pady=5, sticky="nsew")
 
 
         separator = ttk.Separator(interface_frame)
-        separator.grid(row =4,column=0,padx=(20,10),pady=10,sticky="ew")
+        separator.grid(row =5,column=0,padx=(20,10),pady=10,sticky="ew")
+
+        
+        self.check_var = tk.BooleanVar(value=True)# Create a BooleanVar and set its initial value to True,which means that the button will be checked by default
+        self.switch = ttk.Checkbutton(interface_frame, text="Clean Mode", style="Switch.TCheckbutton",variable=self.check_var)
+        self.switch.grid(row=6, column=0,pady=5)
+
+        separator = ttk.Separator(interface_frame)
+        separator.grid(row =7,column=0,padx=(20,10),pady=10,sticky="ew")
 
         # Create a StringVar to store the button text
         self.button_var = tk.StringVar()
         self.button_var.set("Download!")
         self.download_button = ttk.Button(interface_frame, textvariable=self.button_var, style="Accent.TButton",command=self.Download)
-        self.download_button.grid(row=5,column=0,padx=5,pady=7)
+        self.download_button.grid(row=8,column=0,padx=5,pady=7)
 
 
     def table(self):
@@ -112,7 +123,7 @@ class Widgets (ttk.Frame):
         tablescroll.pack(side="right",fill="y")
 
         cols = ("Name","Status","Link")
-        self.table = ttk.Treeview(Tableframe,show="headings",yscrollcommand=tablescroll.set,columns=cols , height=10)
+        self.table = ttk.Treeview(Tableframe,show="headings",yscrollcommand=tablescroll.set,columns=cols , height=13)
         self.table.column("Name",width=200)
         self.table.column("Status",width=100)
         self.table.column("Link",width=400)
@@ -124,6 +135,21 @@ class Widgets (ttk.Frame):
         self.table.pack()
 
 
+    
+    def delete_selected_row(self):
+        selected_item = self.table.selection()
+        if selected_item:
+            values = self.table.item(selected_item, 'values')
+            link = values[2]
+            print(f"selected Link: {link}")
+            self.table_list_links.remove(link)
+
+            # Remove tuples containing the specified item
+            self.table_list_of_tuples = [tpl for tpl in self.table_list_of_tuples if link not in tpl]
+            
+
+            self.table.delete(selected_item)
+            
 
     def clear_table(self):
         self.table.delete(*self.table.get_children())
@@ -134,7 +160,30 @@ class Widgets (ttk.Frame):
         self.table_list_links.clear() 
         self.table_list_of_tuples.clear() 
 
+    @staticmethod
+    def is_valid_youtube_link(link):
+        # Define a regular expression pattern for a YouTube link
+        youtube_pattern = re.compile(
+            r'(https?://)?(www\.)?'
+            '(youtube|youtu|youtube-nocookie)\.(com|be)/'
+            '(watch\?v=|embed/|v/|.+\?v=)?([^&=%\?]{11})')
+
+        # Check if the link matches the pattern
+        match = youtube_pattern.match(link)
+        return bool(match)
+
     def Insert_link(self):
+        text_content = self.text_widget.get("1.0", tk.END).strip()
+        if not text_content:
+            messagebox.showerror("Input error", "Your input is empty")
+
+        links_in_treeview = list()
+        items = self.table.get_children()
+        for item in items:
+            values = self.table.item(item, 'values')
+            links_in_treeview.append(values[2])
+                
+
         #delete all the rows of the table inorder to bypass a bug
         self.clear_table()
 
@@ -144,10 +193,22 @@ class Widgets (ttk.Frame):
         no_empty_links = [item for item in links.splitlines() if item != ""]
 
         filtered_links = set(no_empty_links)
-        
-        self.table_list_links.update(filtered_links)
 
-        print(f'self.table_list_links{self.table_list_links}')
+        #Checking if a YouTube link is valid and removing invalid onces from the list inorder to make the process faster.
+        filtered_links_copy = filtered_links.copy()
+        for link in filtered_links_copy:
+            if self.is_valid_youtube_link(link):
+                print("Valid YouTube link")
+            else:
+                print("Invalid YouTube link")
+                filtered_links.remove(link)
+
+        for link in filtered_links:
+            if link not in links_in_treeview:
+                self.table_list_links.add(link)
+            else:
+                print(f'This link is already in the table: {link}')
+
 
 
         #insert the list of links to the table if not exists
@@ -162,7 +223,6 @@ class Widgets (ttk.Frame):
 
         for tuple_ in self.table_list_of_tuples:
             self.table.insert('',tk.END,values=(tuple_))
-        print(self.table_list_of_tuples)
 
         self.text_widget.delete(1.0, tk.END)  # Delete from the start to the end
 
@@ -176,40 +236,38 @@ class Widgets (ttk.Frame):
 
     def Download(self):#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )
         #download the file to the right path due to the format
-        
-        
-        if self.button_var.get() == "Download!":
-            self.button_var.set("Stop!")
-            def run(event: Event):
-                while True:
-                    script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads"
-                    File_location = script_directory          
-                    #Example:   "C:\\Users\\misha\\Desktop\\" 
-
-                    Youtube_links = list(self.table_list_links)
-                    driverr = self.driver(File_location)
-                    self.Youtube_To_MP3_Download(Youtube_links,driverr)#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )                    
-                    if self.event.is_set():
-                        print("this event has been stopped prematurely")
-                        self.button_var.set("Download!")
-                        self.event.clear()
-                        break
-                    else:
-                        print("this event has been stopped maturely")
-                        self.button_var.set("Download!")
-                        break
-
-
-
-            t = threading.Thread(target=run, args=(self.event,))
-            t.daemon = True  # Daemon threads are background threads that automatically exit when the main program finishes.
-            t.start()
+        if not self.table_list_links:
+            messagebox.showerror("Input error", "Your table is empty")
         else:
-            self.event.set()
-            self.button_var.set("Download!")
-        
-        print(f'set of links:{self.table_list_links}')
-        print(self.table_list_of_tuples)
+            if self.button_var.get() == "Download!":
+                self.button_var.set("Stop!")
+                def run(event: Event):
+                    while True:
+                        script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads"
+                        File_location = script_directory          
+                        #Example:   "C:\\Users\\misha\\Desktop\\" 
+
+                        Youtube_links = list(self.table_list_links)
+                        driverr = self.driver(File_location)
+                        self.Youtube_To_MP3_Download(Youtube_links,driverr)#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )                    
+                        if self.event.is_set():
+                            print("This event has been stopped prematurely")
+                            self.button_var.set("Download!")
+                            self.event.clear()
+                            break
+                        else:
+                            print("This event has been stopped maturely")
+                            self.button_var.set("Download!")
+                            break
+
+
+
+                t = threading.Thread(target=run, args=(self.event,))
+                t.daemon = True  # Daemon threads are background threads that automatically exit when the main program finishes.
+                t.start()
+            else:
+                self.event.set()
+                self.button_var.set("Download!")
     
     
     def driver(self,download_location):
@@ -217,6 +275,13 @@ class Widgets (ttk.Frame):
         # these 2 lines make it so that the browser wont close automaticly
         options = webdriver.ChromeOptions()
         options.add_experimental_option("detach", True)
+
+        if self.check_var.get():#Checkbutton Checked
+            options.add_argument("--headless")#without a graphical user interface.for a clean download(not seeing the webscraping action of the broswer)
+            options.add_argument("--log-level=3")#Sets the minimum log level. Valid values are from 0 to 3: INFO = 0, WARNING = 1, LOG_ERROR = 2, LOG_FATAL = 3
+        else:#Checkbutton Unchecked
+            pass
+            
 
         options.binary_location = r"C:\Users\misha\Desktop\Coding\Coding projects\Python\WebScraping and Automation Python\Youtube Converter\chrome-win64\chrome.exe"
         chrome_driver_binary = r"C:\Users\misha\Desktop\Coding\Coding projects\Python\WebScraping and Automation Python\Youtube Converter\chromedriver.exe"
@@ -267,9 +332,8 @@ class Widgets (ttk.Frame):
 
         def download_songs(youtube_links,driver):
             for link in youtube_links:
-                print(self.event.is_set())
                 if self.event.is_set() == True:#if i pressed the button to stop,then stop downloading the links and quite the driver
-                    print("quites the driver")
+                    print("Quites the driver")
                     driver.quit()
                     return
                 else:
@@ -278,10 +342,7 @@ class Widgets (ttk.Frame):
                             for item in self.table_list_of_tuples:
                                 if item[2] == link:
                                     return (self.table_list_of_tuples.index(item))
-                    try:
-                        print(link)
-                        
-
+                    try:                        
                         Convert_button2 = driver.find_element(By.XPATH,"/html/body/form/div[2]/a[2]")
                         Convert_button2.click()#Clicks on the convert button
 
@@ -321,8 +382,6 @@ class Widgets (ttk.Frame):
                         
                         print(Song_Name_with_pun)
                         songName +=Song_Name_with_pun
-                        #print(Song_Name_without_pun)
-
 
 
                         script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
@@ -331,7 +390,6 @@ class Widgets (ttk.Frame):
                         dir_list = os.listdir(dir_path)
                         
                         for file in dir_list:
-                            #print(f"files in this folder:{file.title()}")
                             pass
 
                         #code to remove whitespace
@@ -354,8 +412,6 @@ class Widgets (ttk.Frame):
                                 Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
 
 
-                        
-
                         File_Exists = False
 
                         file_sum = len(os.listdir(dir_path))
@@ -365,7 +421,7 @@ class Widgets (ttk.Frame):
                                     file_sum -=1
                                     if remove(ftitle.lower()).find(remove(Song_Name_without_pun.lower())) > -1:#if file does not exist,then rename it and complete
                                         File_Exists = True
-                                        print("file exists")
+                                        print("File exists")
                                         self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Error - File exists",link)
                                         self.update_table()
 
@@ -380,21 +436,13 @@ class Widgets (ttk.Frame):
                             Download_button = driver.find_element(By.XPATH,"/html/body/form/div[2]/a[1]")
                             Download_button.click()#Clicks on the download button
 
-
-
                             
                             ###########checks if the download has been completed
-                            #print("Files and directories in '", dir_path, "' :")
-
-                            # prints all files
-                            #print(dir_list)
-
                             timeoutError = False
                             try:                        
                                 #timeout system
                                 start_time = time.time()
                                 seconds = 20
-
 
                                 found = False
                                 while(found==False):
@@ -422,11 +470,9 @@ class Widgets (ttk.Frame):
                                                 found=True
                                         
                             except:
-                                print("file name already exists")
                                 self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Error - File name already exists",link)
                                 self.update_table()
                             if timeoutError ==False:
-                                print('download has been completed')
                                 self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Completed",link)
                                 self.update_table()
                             driver.switch_to.window(driver.window_handles[1])
@@ -436,25 +482,23 @@ class Widgets (ttk.Frame):
 
                         if link ==youtube_links[-1]:
                             #after the last song the drive will quite
-                            print(f"last item {link}")
+                            print(f"Last link {link}")
+                            print("Quites the driver")
                             driver.quit()
                         #==============================================================================           
                     
             
                             
                     except:
-                        print("ERROR - timeout")
-                        self.table_list_of_tuples[link_index()] = (songName,"Error - timeout",link)
+                        self.table_list_of_tuples[link_index()] = (songName,"Error - Timeout",link)
                         self.update_table()
                         if link ==youtube_links[-1]:
                             #after the last song the drive will quite
-                            print(f"last item {link}")
                             time.sleep(2)
                             driver.quit()
                     
                     #delete the link from the set
                     self.table_list_links.remove(link)
-                    print(f'UPDATED self.table_list_links::{self.table_list_links}')
 
         download_songs(youtube_links,driver)
 
@@ -462,9 +506,3 @@ class Widgets (ttk.Frame):
 
 
 App()#run
-    
-
-# Youtube_links = ["https://www.youtube.com/watch?v=oSf3Nqd0qnY","https://www.youtube.com/watch?v=4GGIdZidcno&list=RDMM&start_radio=1","https://www.youtube.com/watch?v=335VEasxI2E&list=RDMM&index=4","https://www.youtube.com/watch?v=0YF8vecQWYs","https://www.youtube.com/watch?v=WCOvg2rvzmM"]
-# Youtube_links = list(set(Youtube_links))#if the user entered 2 of the same links,then "set" will remove one of them and ill turn this back into a list. this will be the UPDATED list of links that will be in use, the table in the ui will be updated to this.
-# print(Youtube_links)
-
