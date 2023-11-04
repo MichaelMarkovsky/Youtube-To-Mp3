@@ -48,9 +48,19 @@ class App(tkinter.Tk):
 
         #widgets
         self.widgets = Widgets(self)
+        
+
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)#if i close the program at the time its downaloding ,its going to stop the download and close the browser if its open
 
         #run
         self.mainloop()#the loop of the application
+
+    def on_closing(self):
+        try:
+            self.widgets.driver_va.quit()
+        except:
+            pass
+        self.destroy()
 
     @staticmethod
     def create_download_folder_if_not_exists():
@@ -74,6 +84,17 @@ class Widgets (ttk.Frame):
         self.table_list_links = set()
         self.table_list_of_tuples = list()
         self.event = Event()
+
+        self.elapsed_time_total = float()#total time for the whole runtime of all the table
+
+        self.completed_num = int()#all table's successful downloads
+        self.file_exists = int()
+        self.not_confirm_file = int()
+        self.failed_num = int()
+
+        self.back_error = False
+
+        self.driver_va = None
         
         self.interface()
         self.table()
@@ -87,14 +108,14 @@ class Widgets (ttk.Frame):
         self.text_widget.grid(row=1,column=0,padx=5,pady=5, sticky="ew")
 
 
-        insert_button = ttk.Button(interface_frame, text="Insert",command=self.Insert_link)
-        insert_button.grid(row=2,column=0,padx=5,pady=5, sticky="nsew")
+        self.insert_button = ttk.Button(interface_frame, text="Insert",command=self.Insert_link)
+        self.insert_button.grid(row=2,column=0,padx=5,pady=5, sticky="nsew")
 
-        delete_row_button = ttk.Button(interface_frame, text="Delete a Link",command=self.delete_selected_row)
-        delete_row_button.grid(row=3,column=0,padx=5,pady=5, sticky="nsew")
+        self.delete_row_button = ttk.Button(interface_frame, text="Delete a Link",command=self.delete_selected_row)
+        self.delete_row_button.grid(row=3,column=0,padx=5,pady=5, sticky="nsew")
 
-        clear_button = ttk.Button(interface_frame, text="Clear Table",command=self.Clear_table_list)
-        clear_button.grid(row=4,column=0,padx=5,pady=5, sticky="nsew")
+        self.clear_table_button = ttk.Button(interface_frame, text="Clear Table",command=self.Clear_table_list)
+        self.clear_table_button.grid(row=4,column=0,padx=5,pady=5, sticky="nsew")
 
 
         separator = ttk.Separator(interface_frame)
@@ -115,11 +136,14 @@ class Widgets (ttk.Frame):
         self.download_button.grid(row=8,column=0,padx=5,pady=7)
 
 
+    def on_scroll(self,*args):#will be called whenever the scrollbar is manipulated.    It calls the yview method of the table widget with the provided arguments, allowing the text widget to scroll vertically.
+        self.table.yview(*args)
+
     def table(self):
         Tableframe = ttk.Frame(self)
         Tableframe.grid(row=0, column=1,padx=0,pady=10)
 
-        tablescroll = ttk.Scrollbar(Tableframe)
+        tablescroll = ttk.Scrollbar(Tableframe,command=self.on_scroll)
         tablescroll.pack(side="right",fill="y")
 
         cols = ("Name","Status","Link")
@@ -142,7 +166,10 @@ class Widgets (ttk.Frame):
             values = self.table.item(selected_item, 'values')
             link = values[2]
             print(f"selected Link: {link}")
-            self.table_list_links.remove(link)
+            try:
+                self.table_list_links.remove(link)
+            except:#the link must be completed therefore its deleted
+                pass
 
             # Remove tuples containing the specified item
             self.table_list_of_tuples = [tpl for tpl in self.table_list_of_tuples if link not in tpl]
@@ -158,7 +185,10 @@ class Widgets (ttk.Frame):
     def Clear_table_list(self):
         self.clear_table()
         self.table_list_links.clear() 
-        self.table_list_of_tuples.clear() 
+        self.table_list_of_tuples.clear()
+
+        #clear the counting valeus
+        self.elapsed_time_total = float()#total time for the whole runtime of all the table
 
     @staticmethod
     def is_valid_youtube_link(link):
@@ -241,24 +271,113 @@ class Widgets (ttk.Frame):
         else:
             if self.button_var.get() == "Download!":
                 self.button_var.set("Stop!")
+                
+                #disable buttons
+                self.switch["state"] = "disabled"
+                self.insert_button["state"] = "disabled"
+                self.clear_table_button["state"] = "disabled"
+                self.delete_row_button["state"] = "disabled"
+
                 def run(event: Event):
+                    start_time = time.perf_counter()
+
                     while True:
+                        self.back_error==False
                         script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads"
                         File_location = script_directory          
                         #Example:   "C:\\Users\\misha\\Desktop\\" 
 
                         Youtube_links = list(self.table_list_links)
                         driverr = self.driver(File_location)
+                        self.driver_va = driverr                      
+                            
                         self.Youtube_To_MP3_Download(Youtube_links,driverr)#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )                    
+                        
                         if self.event.is_set():
                             print("This event has been stopped prematurely")
+
                             self.button_var.set("Download!")
                             self.event.clear()
+
+                            end_time = time.perf_counter()
+                            elapsed_time = end_time - start_time#seconds for this run
+                            self.elapsed_time_total+=elapsed_time
+                            
+                            #enable buttons
+                            self.switch["state"] = "normal"
+                            self.insert_button["state"] = "normal"
+                            self.clear_table_button["state"] = "normal"
+                            self.delete_row_button["state"] = "normal"
+
+                            if not self.table_list_links:#empty
+                                seconds = str(int(self.elapsed_time_total%60))
+                                if int(self.elapsed_time_total%60)<10:
+                                    seconds = f'0{int(self.elapsed_time_total%60)}'
+                                total_time = f'{int(self.elapsed_time_total/60)}:{seconds} minutes' #minutes
+                                
+                                completed_num = int()#all table's successful downloads
+                                file_exists = int()
+                                not_confirm_file = int()
+                                failed_num = int()
+
+                                for row in self.table_list_of_tuples:
+                                    if row[1] == "Completed" or row[1] == "Error - File exists":
+                                        completed_num+=1
+                                    if row[1] =="Error - File exists":
+                                        file_exists +=1
+                                    if row[1] != "Completed" and row[1] != "Error - File exists":
+                                        if row[1] =="Error - Timeout ,could not confirm the file":
+                                            not_confirm_file+=1
+                                        failed_num+=1
+
+
+                                lines = ["Download Completed","",f"Total completed: {completed_num}",f"Total file exists:  {file_exists}",f"Total file not confirmed:    {not_confirm_file}",f"Total failed:   {failed_num}","",f"Total Runtime:   {total_time}"]
+                                messagebox.showinfo("", "\n".join(lines)) 
+
                             break
                         else:
-                            print("This event has been stopped maturely")
-                            self.button_var.set("Download!")
-                            break
+                            if self.back_error==False:
+                                print("This event has been stopped maturely")
+
+                                self.button_var.set("Download!")
+                                
+                                end_time = time.perf_counter()
+                                elapsed_time = end_time - start_time#seconds for this run
+                                self.elapsed_time_total+=elapsed_time
+
+                                #enable buttons
+                                self.switch["state"] = "normal"
+                                self.insert_button["state"] = "normal"
+                                self.clear_table_button["state"] = "normal"
+                                self.delete_row_button["state"] = "normal"
+
+                                if not self.table_list_links:#empty
+                                    seconds = str(int(self.elapsed_time_total%60))
+                                    if int(self.elapsed_time_total%60)<10:
+                                        seconds = f'0{int(self.elapsed_time_total%60)}'
+                                    total_time = f'{int(self.elapsed_time_total/60)}:{seconds} minutes' #minutes
+                                    
+                                    completed_num = int()#all table's successful downloads
+                                    file_exists = int()
+                                    not_confirm_file = int()
+                                    failed_num = int()
+
+                                    for row in self.table_list_of_tuples:
+                                        if row[1] == "Completed" or row[1] == "Error - File exists":
+                                            completed_num+=1
+                                        if row[1] =="Error - File exists":
+                                            file_exists +=1
+                                        if row[1] != "Completed" and row[1] != "Error - File exists":
+                                            if row[1] =="Error - Timeout ,could not confirm the file":
+                                                not_confirm_file+=1
+                                            failed_num+=1
+
+
+                                    lines = ["Download Completed","",f"Total completed: {completed_num}",f"Total file exists:  {file_exists}",f"Total file not confirmed:    {not_confirm_file}",f"Total failed:   {failed_num}","",f"Total Runtime:   {total_time}"]
+                                    messagebox.showinfo("", "\n".join(lines)) 
+                                    
+                                break
+                            
 
 
 
@@ -275,10 +394,13 @@ class Widgets (ttk.Frame):
         # these 2 lines make it so that the browser wont close automaticly
         options = webdriver.ChromeOptions()
         options.add_experimental_option("detach", True)
+        
+        options.add_argument("--mute-audio")#mute the audio of potential ads
 
         if self.check_var.get():#Checkbutton Checked
             options.add_argument("--headless")#without a graphical user interface.for a clean download(not seeing the webscraping action of the broswer)
             options.add_argument("--log-level=3")#Sets the minimum log level. Valid values are from 0 to 3: INFO = 0, WARNING = 1, LOG_ERROR = 2, LOG_FATAL = 3
+            options.add_argument("--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36")#change the user agent to Chrome from HeadlessChrome in order to potentially not get blocked
         else:#Checkbutton Unchecked
             pass
             
@@ -304,7 +426,7 @@ class Widgets (ttk.Frame):
         driver.get("https://ytmp3.nu/nBlF/")#gets into this url(opens this site)
 
         #timeout:
-        driver.implicitly_wait(10)#waits untill finds the elemnt, an x amount of time in order to prevent errors because of slow processes like loading the site,server..its a timeout for all elements
+        driver.implicitly_wait(30)#waits untill finds the elemnt, an x amount of time in order to prevent errors because of slow processes like loading the site,server..its a timeout for all elements
 
         ##########inserting the first song so that the process will be shorter for this site##############
         Textbox_element = driver.find_element(By.ID,"url")#selects an element and stores it as a web element
@@ -379,8 +501,25 @@ class Widgets (ttk.Frame):
                             if ele in punc:
                                 Song_Name_without_pun = Song_Name_without_pun.replace(ele, "")
 
-                        
+                        print(f'before : {self.back_error}')
+
                         print(Song_Name_with_pun)
+                        if Song_Name_with_pun=="An backend error occurred. Error code (p:3 / e:0).":
+                            self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Error",link)
+                            self.update_table()
+                            
+                            self.back_error = True
+                            #delete the link from the set
+                            try:
+                                self.table_list_links.remove(link)
+                            except:
+                                pass
+
+                            driver.quit()
+                            return 
+                        else:
+                            self.back_error = False
+                            
                         songName +=Song_Name_with_pun
 
 
@@ -427,7 +566,7 @@ class Widgets (ttk.Frame):
 
 
                         if File_Exists == False:
-                            WebDriverWait(driver, 10).until(    
+                            WebDriverWait(driver, 30).until(    
                             EC.element_to_be_clickable(
                                 (By.XPATH,"/html/body/form/div[2]/a[1]")
                                 )
@@ -442,7 +581,7 @@ class Widgets (ttk.Frame):
                             try:                        
                                 #timeout system
                                 start_time = time.time()
-                                seconds = 20
+                                seconds = 30
 
                                 found = False
                                 while(found==False):
@@ -454,9 +593,9 @@ class Widgets (ttk.Frame):
                                         print("Finished iterating in: " + str(int(elapsed_time))  + " seconds")
                                         if(found==False):
                                             print("Error - Timeout ,could not confirm the file.")
-                                            self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Error - Timeout ,could not confirm the file.",link)
+                                            self.table_list_of_tuples[link_index()] = (Song_Name_with_pun,"Error - Timeout ,could not confirm the file",link)
                                             self.update_table()
-                                            timeoutError = True
+                                            timeoutError = True                                                
                                         break
                                     ##################
 
@@ -478,13 +617,15 @@ class Widgets (ttk.Frame):
                             driver.switch_to.window(driver.window_handles[1])
                             driver.close()
                             driver.switch_to.window(driver.window_handles[0])
-
+                            
 
                         if link ==youtube_links[-1]:
                             #after the last song the drive will quite
                             print(f"Last link {link}")
                             print("Quites the driver")
+                            self.back_error = False
                             driver.quit()
+                            
                         #==============================================================================           
                     
             
@@ -498,7 +639,13 @@ class Widgets (ttk.Frame):
                             driver.quit()
                     
                     #delete the link from the set
-                    self.table_list_links.remove(link)
+                    try:
+                        self.table_list_links.remove(link)
+                    except:
+                        pass
+
+                    time.sleep(1)  # Sleep for 1 seconds in order to avoid getting blocked by being slower (humanlike behavoir)
+
 
         download_songs(youtube_links,driver)
 
