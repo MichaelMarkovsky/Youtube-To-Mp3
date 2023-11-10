@@ -48,7 +48,6 @@ class App(tkinter.Tk):
 
         #widgets
         self.widgets = Widgets(self)
-        
 
         self.protocol("WM_DELETE_WINDOW", self.on_closing)#if i close the program at the time its downaloding ,its going to stop the download and close the browser if its open
 
@@ -264,87 +263,64 @@ class Widgets (ttk.Frame):
         for link in self.table_list_of_tuples:
             self.table.insert('',tk.END,values=(link[0],link[1],link[2]))
 
-    def Download(self):#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )
-        #download the file to the right path due to the format
-        if not self.table_list_links:
-            messagebox.showerror("Input error", "Your table is empty")
+    def drivers_check(self):
+        script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
+
+        binary_location_error = False
+        chrome_driver_binary_error = False
+
+        if not os.path.exists(f"{script_directory}\chrome-win64\chrome.exe"):
+            binary_location_error = True
+        if not os.path.exists(f"{script_directory}\chromedriver-win64\chromedriver.exe"):
+            chrome_driver_binary_error = True
+        
+        if binary_location_error==True or chrome_driver_binary_error==True:
+            lines = ["Error","Your drivers are missing"]
+            messagebox.showerror("", "\n".join(lines))
+            return False
         else:
-            if self.button_var.get() == "Download!":
-                self.button_var.set("Stop!")
-                
-                #disable buttons
-                self.switch["state"] = "disabled"
-                self.insert_button["state"] = "disabled"
-                self.clear_table_button["state"] = "disabled"
-                self.delete_row_button["state"] = "disabled"
+            return True
+        
+    def Download(self):
+        if self.drivers_check()==True:#check if the necessary drivers exists
 
-                def run(event: Event):
-                    start_time = time.perf_counter()
+            if not self.table_list_links:
+                messagebox.showerror("Input error", "Your table is empty")
+            else:
+                if self.button_var.get() == "Download!":
+                    self.button_var.set("Stop!")
+                    
+                    #disable buttons
+                    self.switch["state"] = "disabled"
+                    self.insert_button["state"] = "disabled"
+                    self.clear_table_button["state"] = "disabled"
+                    self.delete_row_button["state"] = "disabled"
 
-                    while True:
-                        self.back_error==False
-                        script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads"
-                        File_location = script_directory          
-                        #Example:   "C:\\Users\\misha\\Desktop\\" 
+                    def run(event: Event):
+                        start_time = time.perf_counter()
 
-                        Youtube_links = list(self.table_list_links)
-                        driverr = self.driver(File_location)
-                        self.driver_va = driverr                      
-                            
-                        self.Youtube_To_MP3_Download(Youtube_links,driverr)#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )                    
-                        
-                        if self.event.is_set():
-                            print("This event has been stopped prematurely")
+                        while True:
+                            self.back_error==False
+                            script_directory = f"{os.path.dirname(os.path.abspath(sys.argv[0]))}\downloads"
+                            File_location = script_directory          
+                            #Example:   "C:\\Users\\misha\\Desktop\\" 
 
-                            self.button_var.set("Download!")
-                            self.event.clear()
-
-                            end_time = time.perf_counter()
-                            elapsed_time = end_time - start_time#seconds for this run
-                            self.elapsed_time_total+=elapsed_time
-                            
-                            #enable buttons
-                            self.switch["state"] = "normal"
-                            self.insert_button["state"] = "normal"
-                            self.clear_table_button["state"] = "normal"
-                            self.delete_row_button["state"] = "normal"
-
-                            if not self.table_list_links:#empty
-                                seconds = str(int(self.elapsed_time_total%60))
-                                if int(self.elapsed_time_total%60)<10:
-                                    seconds = f'0{int(self.elapsed_time_total%60)}'
-                                total_time = f'{int(self.elapsed_time_total/60)}:{seconds} minutes' #minutes
+                            Youtube_links = list(self.table_list_links)
+                            driverr = self.driver(File_location)
+                            self.driver_va = driverr                      
                                 
-                                completed_num = int()#all table's successful downloads
-                                file_exists = int()
-                                not_confirm_file = int()
-                                failed_num = int()
-
-                                for row in self.table_list_of_tuples:
-                                    if row[1] == "Completed" or row[1] == "Error - File exists":
-                                        completed_num+=1
-                                    if row[1] =="Error - File exists":
-                                        file_exists +=1
-                                    if row[1] != "Completed" and row[1] != "Error - File exists":
-                                        if row[1] =="Error - Timeout ,could not confirm the file":
-                                            not_confirm_file+=1
-                                        failed_num+=1
-
-
-                                lines = ["Download Completed","",f"Total completed: {completed_num}",f"Total file exists:  {file_exists}",f"Total file not confirmed:    {not_confirm_file}",f"Total failed:   {failed_num}","",f"Total Runtime:   {total_time}"]
-                                messagebox.showinfo("", "\n".join(lines)) 
-
-                            break
-                        else:
-                            if self.back_error==False:
-                                print("This event has been stopped maturely")
+                            self.Youtube_To_MP3_Download(Youtube_links,driverr)#the youtube link(that you want to download to mp3) and the file location you want the file to be downloaded to( if not given then it will be downloaded to the default location )                    
+                            
+                            if self.event.is_set():
+                                print("This event has been stopped prematurely")
 
                                 self.button_var.set("Download!")
-                                
+                                self.event.clear()
+
                                 end_time = time.perf_counter()
                                 elapsed_time = end_time - start_time#seconds for this run
                                 self.elapsed_time_total+=elapsed_time
-
+                                
                                 #enable buttons
                                 self.switch["state"] = "normal"
                                 self.insert_button["state"] = "normal"
@@ -375,18 +351,60 @@ class Widgets (ttk.Frame):
 
                                     lines = ["Download Completed","",f"Total completed: {completed_num}",f"Total file exists:  {file_exists}",f"Total file not confirmed:    {not_confirm_file}",f"Total failed:   {failed_num}","",f"Total Runtime:   {total_time}"]
                                     messagebox.showinfo("", "\n".join(lines)) 
-                                    
+
                                 break
-                            
+                            else:
+                                if self.back_error==False:
+                                    print("This event has been stopped maturely")
+
+                                    self.button_var.set("Download!")
+                                    
+                                    end_time = time.perf_counter()
+                                    elapsed_time = end_time - start_time#seconds for this run
+                                    self.elapsed_time_total+=elapsed_time
+
+                                    #enable buttons
+                                    self.switch["state"] = "normal"
+                                    self.insert_button["state"] = "normal"
+                                    self.clear_table_button["state"] = "normal"
+                                    self.delete_row_button["state"] = "normal"
+
+                                    if not self.table_list_links:#empty
+                                        seconds = str(int(self.elapsed_time_total%60))
+                                        if int(self.elapsed_time_total%60)<10:
+                                            seconds = f'0{int(self.elapsed_time_total%60)}'
+                                        total_time = f'{int(self.elapsed_time_total/60)}:{seconds} minutes' #minutes
+                                        
+                                        completed_num = int()#all table's successful downloads
+                                        file_exists = int()
+                                        not_confirm_file = int()
+                                        failed_num = int()
+
+                                        for row in self.table_list_of_tuples:
+                                            if row[1] == "Completed" or row[1] == "Error - File exists":
+                                                completed_num+=1
+                                            if row[1] =="Error - File exists":
+                                                file_exists +=1
+                                            if row[1] != "Completed" and row[1] != "Error - File exists":
+                                                if row[1] =="Error - Timeout ,could not confirm the file":
+                                                    not_confirm_file+=1
+                                                failed_num+=1
+
+
+                                        lines = ["Download Completed","",f"Total completed: {completed_num}",f"Total file exists:  {file_exists}",f"Total file not confirmed:    {not_confirm_file}",f"Total failed:   {failed_num}","",f"Total Runtime:   {total_time}"]
+                                        messagebox.showinfo("", "\n".join(lines)) 
+                                        
+                                    break
+                                
 
 
 
-                t = threading.Thread(target=run, args=(self.event,))
-                t.daemon = True  # Daemon threads are background threads that automatically exit when the main program finishes.
-                t.start()
-            else:
-                self.event.set()
-                self.button_var.set("Download!")
+                    t = threading.Thread(target=run, args=(self.event,))
+                    t.daemon = True  # Daemon threads are background threads that automatically exit when the main program finishes.
+                    t.start()
+                else:
+                    self.event.set()
+                    self.button_var.set("Download!")
     
     
     def driver(self,download_location):
@@ -404,9 +422,11 @@ class Widgets (ttk.Frame):
         else:#Checkbutton Unchecked
             pass
             
+            
+        script_directory = os.path.dirname(os.path.abspath(sys.argv[0])) #give me the path of the script
 
-        options.binary_location = r"C:\Users\misha\Desktop\Coding\Coding projects\Python\WebScraping and Automation Python\Youtube Converter\chrome-win64\chrome.exe"
-        chrome_driver_binary = r"C:\Users\misha\Desktop\Coding\Coding projects\Python\WebScraping and Automation Python\Youtube Converter\chromedriver.exe"
+        options.binary_location = (f"{script_directory}\chrome-win64\chrome.exe")
+        chrome_driver_binary = (f"{script_directory}\chromedriver-win64\chromedriver.exe")
         
 
         if (download_location!= None):#if ive given a file location then proceed, else download the file to the default folder(which is the "Download" folder)
@@ -419,9 +439,6 @@ class Widgets (ttk.Frame):
 
 
     def Youtube_To_MP3_Download(self,youtube_links,driver):
-        
-        
-
         #WEBSCRAPING STARTS HERE
         driver.get("https://ytmp3.nu/nBlF/")#gets into this url(opens this site)
 
