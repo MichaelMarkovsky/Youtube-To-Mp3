@@ -46,4 +46,5 @@ Download and install a custom version of tkinter(themed):
 ```
 pip install sv-ttk
 ```
-## Licence
+## License
+[MIT License](LICENSE)
