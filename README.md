@@ -1,7 +1,7 @@
 # Youtube-To-Mp3
 >A script which automates the process of downloading Youtube songs via a website.
 
-![Downloading in progress](https://github.com/MichaelMarkovsky/Youtube-To-Mp3/assets/133515749/bcab07cb-849e-4f5d-99ec-e382dcd409c9)
+![Downloading in progress example](https://github.com/MichaelMarkovsky/Youtube-To-Mp3/assets/133515749/9141d69a-a7c3-46a9-8d5e-7f82aca02a54)
 
 ## Fetures
 - Easy to use
