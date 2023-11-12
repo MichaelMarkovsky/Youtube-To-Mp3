@@ -12,7 +12,7 @@
 ## Overview
 This python script uses Selenuim's package in order to automate the web browser and Tkinter's package for the GUI.
 #### Inserting the links
-After the user pastes the links to the interface and inserts them to the table, invalid links wont be inserted by a simple
+After the user pastes the links (link under link) to the interface and inserts them to the table, invalid links wont be inserted by a simple
 process of a format check.
 links are already in the table are being filtered as well.
 
@@ -46,5 +46,11 @@ Download and install a custom version of tkinter(themed):
 ```
 pip install sv-ttk
 ```
+#### Essentials:
+- YoutubeConverter.py
+- Icon.ico
+- chromedriver-win64
+- chrome-win64
+
 ## License
 [MIT License](LICENSE)
