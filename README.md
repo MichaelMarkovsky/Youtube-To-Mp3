@@ -13,7 +13,7 @@
 This python script uses Selenuim's package in order to automate the web browser and Tkinter's package for the GUI.
 #### Inserting the links
 After the user pastes the links (link under link) to the interface and inserts them to the table, invalid links wont be inserted by a simple
-process of a format check.
+process of a format check by using Regular Expression.
 links are already in the table are being filtered as well.
 
 #### Download the links
